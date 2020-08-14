@@ -2,6 +2,8 @@ val scalaV = "2.13.3"
 val scalaTestV = "3.2.1"
 
 libraryDependencies ++= Seq(
+  "net.java.dev.jna" % "jna" % "5.6.0",
+  "org.graalvm.nativeimage" % "svm" % "20.1.0" % "provided",
   "org.scalatest" %% "scalatest" % scalaTestV % "test"
 )
 
