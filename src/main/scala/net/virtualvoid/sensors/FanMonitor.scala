@@ -14,7 +14,7 @@ trait ClevoFan {
   def fanInfo(): FanInfo
 }
 object ClevoFan {
-  def apply(): ClevoFan = new ClevoFan {
+  def apply(ioctl: (Int, Long, Array[Byte]) => Int): ClevoFan = new ClevoFan {
     val tuxedoWmiFd: Int = {
       val f = new RandomAccessFile("/dev/tuxedo_cc_wmi", "r")
       val fdField = classOf[RandomAccessFile].getDeclaredField("fd")
@@ -26,7 +26,7 @@ object ClevoFan {
     }
     override def fanInfo(): FanInfo = {
       val bytes = new Array[Byte](8)
-      val res = jna.Ioctl.ioctl(tuxedoWmiFd, 0x8008ec10L, bytes)
+      val res = ioctl(tuxedoWmiFd, 0x8008ec10L, bytes)
       require(res == 0, s"Ioctl result was != 0: $res")
       FanInfo(
         (bytes(0) & 0xff).toDouble / 255,
@@ -53,8 +53,8 @@ object Ansi {
   val EraseDisplayBelow = "\u001b\u005b0J"
 }
 
-object FanMonitor extends App {
-  val fan = ClevoFan()
+class FanMonitor(ioctl: (Int, Long, Array[Byte]) => Int) {
+  val fan = ClevoFan(ioctl)
 
   val barWidth = 80
 
