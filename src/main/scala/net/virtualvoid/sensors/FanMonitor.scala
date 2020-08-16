@@ -5,6 +5,7 @@ import java.io.{ FileDescriptor, RandomAccessFile }
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
+import scala.util.Try
 
 case class FanInfo(
     speed:              Double,
@@ -85,21 +86,25 @@ class FanMonitor(ioctl: (Int, Long, Array[Byte]) => Int) {
     val values =
       if (sensor.isCumulative)
         history.takeRight(barWidth + 1).sliding(2).map {
-          case ArrayBuffer(i0: Double, i1: Double) => i1 - i0
-          case ArrayBuffer(i0: Double)             => 0 // FIXME
+          case ArrayBuffer(i0: Double, i1: Double) if !i0.isNaN && !i1.isNaN => i1 - i0
+          case _ => Double.NaN // FIXME
         }.toVector
       else history.takeRight(barWidth)
     val minValue = sensor.minValueOption.getOrElse(values.min)
     val maxValue = sensor.maxValueOption.getOrElse(values.max)
     val span = maxValue - minValue
-    def toBar0(value: Double): String = {
-      val level = ((value - minValue) * 12 / span).toInt
-      s"${color(level)}${Ansi.bars((level - 6).max(0).min(5))}"
-    }
-    def toBar1(value: Double): String = {
-      val level = ((value - minValue) * 12 / span).toInt
-      s"${color(level)}${Ansi.bars(level.max(0).min(5))}"
-    }
+    def toBar0(value: Double): String =
+      if (value.isNaN) " "
+      else {
+        val level = ((value - minValue) * 12 / span).toInt
+        s"${color(level)}${Ansi.bars((level - 6).max(0).min(5))}"
+      }
+    def toBar1(value: Double): String =
+      if (value.isNaN) s"${Console.RED}x"
+      else {
+        val level = ((value - minValue) * 12 / span).toInt
+        s"${color(level)}${Ansi.bars(level.max(0).min(5))}"
+      }
     val latest = values.last
     val bars0 = values.map(toBar0).mkString
     val bars1 = values.map(toBar1).mkString
@@ -137,13 +142,13 @@ class FanMonitor(ioctl: (Int, Long, Array[Byte]) => Int) {
   print(Ansi.SaveCursor)
 
   data.foreach {
-    case (s, b) if s.isCumulative => b.addOne(s.read())
+    case (s, b) if s.isCumulative => b.addOne(Try(s.read()).getOrElse(Double.NaN))
     case _                        =>
   }
 
   while (true) {
     data.foreach {
-      case (s, b) => b.addOne(s.read())
+      case (s, b) => b.addOne(Try(s.read()).getOrElse(Double.NaN))
     }
 
     print(Ansi.EraseDisplayBelow)
