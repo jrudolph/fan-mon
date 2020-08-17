@@ -132,8 +132,10 @@ class FanMonitor(ioctl: (Int, Long, Array[Byte]) => Int) {
   def coreFreqSensor(core: Int): Sensor =
     Sensor(s"Core $core freq", () => coreFreq(core)() / 1000, Some(1200), Some(4000), "MHz")
 
+  val gpuFreq = Sensor("GPU freq", () => igpuFreq().toDouble, Some(350), Some(1300), "MHz")
+
   val sensors = Seq(
-    fanSpeed, fanTemp, packageEnergy, coreEnergy, uncoreEnergy, coreThermalThrottlePackageCountSensor(0)
+    fanSpeed, fanTemp, packageEnergy, coreEnergy, uncoreEnergy, coreThermalThrottlePackageCountSensor(0), gpuFreq
   ) ++ (0 to 3).map(coreFreqSensor)
 
   val data: Seq[(Sensor, ArrayBuffer[Double])] = sensors.map(_ -> new ArrayBuffer[Double]())
@@ -176,6 +178,9 @@ class FanMonitor(ioctl: (Int, Long, Array[Byte]) => Int) {
 
   def thermalThrottlePackageCount(core: Int): () => Long =
     readLongFromFile(s"/sys/devices/system/cpu/cpu$core/thermal_throttle/package_throttle_count")
+
+  def igpuFreq: () => Long =
+    readLongFromFile("/sys/class/drm/card0/gt_cur_freq_mhz")
 
   def readLongFromFile(fileName: String): () => Long =
     () => Source.fromFile(fileName).getLines().next().toLong // FIXME: crappy implementation
