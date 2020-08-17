@@ -108,8 +108,9 @@ class FanMonitor(ioctl: (Int, Long, Array[Byte]) => Int) {
     val latest = values.last
     val bars0 = values.map(toBar0).mkString
     val bars1 = values.map(toBar1).mkString
+    val error = if (latest.isNaN) Try(sensor.read()).fold[String](_.getMessage, _ => "") else ""
 
-    f"${""}%-12s $bars0%s${Console.RESET}\n" +
+    f"${""}%-12s $bars0%s${Console.RESET}$error\n" +
       f"${sensor.label.take(12)}%-12s $bars1%s${Console.RESET} $latest%7.1f ${sensor.unit}%s\n"
   }
 
