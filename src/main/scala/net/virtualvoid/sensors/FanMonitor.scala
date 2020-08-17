@@ -16,14 +16,14 @@ trait ClevoFan {
 }
 object ClevoFan {
   def apply(ioctl: (Int, Long, Array[Byte]) => Int): ClevoFan = new ClevoFan {
-    val tuxedoWmiFd: Int = {
+    val (f, tuxedoWmiFd: Int) = {
       val f = new RandomAccessFile("/dev/tuxedo_cc_wmi", "r")
       val fdField = classOf[RandomAccessFile].getDeclaredField("fd")
       fdField.setAccessible(true)
       val fd = fdField.get(f)
       val fdFdField = classOf[FileDescriptor].getDeclaredField("fd")
       fdFdField.setAccessible(true)
-      fdFdField.get(fd).asInstanceOf[Int]
+      (f, fdFdField.get(fd).asInstanceOf[Int])
     }
     override def fanInfo(): FanInfo = {
       val bytes = new Array[Byte](8)
