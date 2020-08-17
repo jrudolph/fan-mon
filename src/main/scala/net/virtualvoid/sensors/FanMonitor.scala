@@ -141,9 +141,6 @@ class FanMonitor(ioctl: (Int, Long, Array[Byte]) => Int) {
 
   val data: Seq[(Sensor, ArrayBuffer[Double])] = sensors.map(_ -> new ArrayBuffer[Double]())
 
-  println()
-  print(Ansi.SaveCursor)
-
   data.foreach {
     case (s, b) if s.isCumulative => b.addOne(Try(s.read()).getOrElse(Double.NaN))
     case _                        =>
